@@ -3,12 +3,7 @@ import yfinance as yf
 import pandas as pd
 import time
 
-# ---------------- PAGE SETUP ----------------
-st.set_page_config(
-    page_title="Live Stock P2L Dashboard",
-    layout="wide"
-)
-
+st.set_page_config(page_title="Live Stock P2L", layout="wide")
 st.title("📊 Live Prices with P2L")
 
 # ---------------- STOCK LIST ----------------
@@ -53,32 +48,36 @@ stocks = {
     "VBL": 434.42
 }
 
-# ---------------- DATA FETCH ----------------
+symbols = [s + ".NS" for s in stocks.keys()]
 
-@st.cache_data(ttl=30)
+# ---------------- FETCH DATA ----------------
+
+@st.cache_data(ttl=20)
 def fetch_data():
+
+    df = yf.download(symbols, period="1d", interval="1m", progress=False)
+
     rows = []
 
-    for sym, ref_low in stocks.items():
+    for sym in stocks:
+
         try:
-            symbol = sym + ".NS"
-            t = yf.Ticker(symbol)
-            info = t.info
+            s = sym + ".NS"
 
-            price = info.get("regularMarketPrice", 0)
-            open_ = info.get("open", 0)
-            high = info.get("dayHigh", 0)
-            low = info.get("dayLow", 0)
-            chg = info.get("regularMarketChangePercent", 0)
+            price = df["Close"][s].iloc[-1]
+            open_ = df["Open"][s].iloc[-1]
+            high = df["High"][s].iloc[-1]
+            low = df["Low"][s].iloc[-1]
 
-            p2l = ((price - ref_low) / ref_low) * 100 if ref_low else 0
+            pct = ((price - open_) / open_) * 100
+            p2l = ((price - stocks[sym]) / stocks[sym]) * 100
 
             rows.append([
-                info.get("shortName", sym),
+                sym,
                 round(p2l,2),
                 round(price,2),
-                round(chg,2),
-                round(ref_low,2),
+                round(pct,2),
+                round(stocks[sym],2),
                 round(open_,2),
                 round(high,2),
                 round(low,2)
@@ -91,76 +90,31 @@ def fetch_data():
         columns=["Stock","P2L %","Price","% Chg","Low Price","Open","High","Low"]
     )
 
-# ---------------- STYLING ----------------
+# ---------------- BUTTONS ----------------
 
-def style_df(df):
+c1,c2,c3 = st.columns(3)
 
-    def color_stock(val, p2l):
-        return "color: hotpink" if p2l < 0 else "color: black"
+with c1:
+    refresh = st.button("🔄 Refresh")
 
-    styled = df.style
+with c2:
+    sortp = st.button("📈 Sort P2L")
 
-    styled = styled.apply(
-        lambda x: [
-            color_stock(v, df.loc[i,"P2L %"]) if x.name=="Stock" else ""
-            for i,v in enumerate(x)
-        ],
-        axis=0
-    )
+with c3:
+    auto = st.toggle("⏱ Auto 30s")
 
-    for col in ["Open","High","Low"]:
-        styled = styled.apply(
-            lambda x: ["color: hotpink"]*len(x),
-            subset=[col]
-        )
-
-    styled = styled.format("{:.2f}", subset=df.select_dtypes("number").columns)
-
-    styled = styled.set_properties(**{"font-size":"11px"})
-
-    return styled
-
-# ---------------- BUTTONS TOP ----------------
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    refresh_btn = st.button("🔄 Refresh")
-
-with col2:
-    sort_btn = st.button("📈 Sort P2L")
-
-with col3:
-    auto = st.toggle("⏱ Auto Refresh 30s")
-
-# ---------------- DATA LOAD ----------------
+# ---------------- DATA ----------------
 
 df = fetch_data()
 
-if sort_btn:
+if sortp:
     df = df.sort_values("P2L %", ascending=False)
 
-# ---------------- DISPLAY ----------------
-
-st.dataframe(
-    style_df(df),
-    use_container_width=True,
-    hide_index=True
-)
-
-# ---------------- BUTTONS BOTTOM ----------------
-
-col4, col5 = st.columns(2)
-
-with col4:
-    st.button("🔄 Refresh ")
-
-with col5:
-    st.button("📈 Sort P2L ")
+st.dataframe(df, use_container_width=True, hide_index=True)
 
 # ---------------- AUTO REFRESH ----------------
 
 if auto:
     time.sleep(30)
     st.experimental_rerun()
-  
+    
