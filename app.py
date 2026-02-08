@@ -74,15 +74,16 @@ def fetch_data():
             pct = ((price - open_) / open_) * 100
             p2l = ((price - stocks[sym]) / stocks[sym]) * 100
 
+            # Format numbers as strings with 2 decimals
             rows.append([
                 sym,
-                round(p2l, 2),
-                round(price, 2),
-                round(pct, 2),
-                round(stocks[sym], 2),
-                round(open_, 2),
-                round(high, 2),
-                round(low, 2)
+                f"{p2l:.2f}",
+                f"{price:.2f}",
+                f"{pct:.2f}",
+                f"{stocks[sym]:.2f}",
+                f"{open_:.2f}",
+                f"{high:.2f}",
+                f"{low:.2f}"
             ])
         except Exception as e:
             print(f"Error fetching {sym}: {e}")
@@ -109,8 +110,10 @@ if sortp:
 
 # Conditional styling: P2L negative in red
 def highlight_p2l(val):
-    color = "red" if val < 0 else "green"
-    return f"color: {color}; font-weight: bold"
+    try:
+        return "color: red; font-weight: bold" if float(val) < 0 else "color: green; font-weight: bold"
+    except:
+        return ""
 
 st.dataframe(df.style.applymap(highlight_p2l, subset=["P2L %"]), use_container_width=True, hide_index=True)
 
