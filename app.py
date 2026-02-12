@@ -1,12 +1,18 @@
+# -----------------------------------------
+# INSTALL (Run once in terminal)
+# pip install streamlit yfinance pandas
+# -----------------------------------------
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import time
 
 st.set_page_config(page_title="📊 Live Stock P2L", layout="wide")
 st.title("📊 Live Prices with P2L")
 
-# ---------------- STOCK LIST ----------------
+# -----------------------------------
+# UPDATED STOCK LIST (Stock : Reference Low Price)
+
 stocks = {
     "CANBK.NS": 142.93,
     "CHOLAFIN.NS": 1690.51,
@@ -23,69 +29,84 @@ stocks = {
     "PNB.NS": 119.90,
 }
 
-symbols = [s + ".NS" for s in stocks.keys()]
+# -----------------------------------
+# FUNCTION TO FETCH DATA
 
-# ---------------- FETCH DATA ----------------
-@st.cache_data(ttl=20)
+@st.cache_data(ttl=60)
 def fetch_data():
-    df = yf.download(symbols, period="1d", interval="1m", progress=False)
     rows = []
 
-    for sym in stocks:
+    for sym, ref_low in stocks.items():
         try:
-            s = sym + ".NS"
-            price = df["Close"][s].iloc[-1]
-            open_ = df["Open"][s].iloc[-1]
-            high = df["High"][s].iloc[-1]
-            low = df["Low"][s].iloc[-1]
+            t = yf.Ticker(sym)
+            info = t.info
 
-            pct = ((price - open_) / open_) * 100
-            p2l = ((price - stocks[sym]) / stocks[sym]) * 100
+            price = info.get("regularMarketPrice", 0)
+            change_percent = info.get("regularMarketChangePercent", 0)
 
-            # Format numbers as strings with 2 decimals
-            rows.append([
-                sym,
-                f"{p2l:.2f}",
-                f"{price:.2f}",
-                f"{pct:.2f}",
-                f"{stocks[sym]:.2f}",
-                f"{open_:.2f}",
-                f"{high:.2f}",
-                f"{low:.2f}"
-            ])
-        except Exception as e:
-            print(f"Error fetching {sym}: {e}")
-            continue
+            if price:
+                p2l = ((price - ref_low) / ref_low) * 100
+            else:
+                p2l = 0
 
-    return pd.DataFrame(
-        rows,
-        columns=["Stock", "P2L %", "Price", "% Chg", "Low Price", "Open", "High", "Low"]
-    )
+            rows.append({
+                "Stock": info.get("shortName", sym.replace(".NS", "")),
+                "P2L %": p2l,
+                "Price": price,
+                "% Chg": change_percent,
+                "Low Price": ref_low,
+                "Open": info.get("open", 0),
+                "High": info.get("dayHigh", 0),
+                "Low": info.get("dayLow", 0)
+            })
 
-# ---------------- BUTTONS ----------------
-c1, c2, c3 = st.columns([1,1,1])
-with c1:
-    refresh = st.button("🔄 Refresh")
-with c2:
-    sortp = st.button("📈 Sort P2L")
-with c3:
-    auto = st.checkbox("⏱ Auto Refresh 30s")
+        except:
+            pass
 
-# ---------------- DATA ----------------
+    return pd.DataFrame(rows)
+
+# -----------------------------------
+# BUTTONS
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🔄 Refresh"):
+        st.cache_data.clear()
+
+with col2:
+    sort_clicked = st.button("📈 Sort by P2L")
+
+# -----------------------------------
+# LOAD DATA
+
 df = fetch_data()
-if sortp:
+
+if sort_clicked:
     df = df.sort_values("P2L %", ascending=False)
 
-# Conditional styling: P2L negative in red
-def highlight_p2l(val):
-    try:
-        return "color: red; font-weight: bold" if float(val) < 0 else "color: green; font-weight: bold"
-    except:
-        return ""
+# -----------------------------------
+# STYLING FUNCTION
 
-st.dataframe(df.style.applymap(highlight_p2l, subset=["P2L %"]), use_container_width=True, hide_index=True)
+def color_rows(row):
+    style = []
 
-# ---------------- AUTO REFRESH ----------------
-if auto:
-    time.sleep(30)
-    st.experimental_rerun()
+    # Stock name pink if P2L negative
+    if row["P2L %"] < 0:
+        style.append("color: hotpink")
+    else:
+        style.append("color: black")
+
+    # Remaining columns
+    for col in row.index[1:]:
+        if col in ["Open", "High", "Low"]:
+            style.append("color: hotpink")
+        else:
+            style.append("color: black")
+
+    return style
+
+# Apply styling
+styled_df = df.style.apply(color_rows, axis=1).format("{:.2f}")
+
+st.dataframe(styled_df, use_container_width=True)
