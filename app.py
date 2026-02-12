@@ -1,8 +1,3 @@
-# -----------------------------------------
-# INSTALL (Run once in terminal)
-# pip install streamlit yfinance pandas
-# -----------------------------------------
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -11,8 +6,7 @@ st.set_page_config(page_title="📊 Live Stock P2L", layout="wide")
 st.title("📊 Live Prices with P2L")
 
 # -----------------------------------
-# UPDATED STOCK LIST (Stock : Reference Low Price)
-
+# STOCK LIST
 stocks = {
     "CANBK.NS": 142.93,
     "CHOLAFIN.NS": 1690.51,
@@ -30,36 +24,43 @@ stocks = {
 }
 
 # -----------------------------------
-# FUNCTION TO FETCH DATA
+# FAST FETCH FUNCTION
 
 @st.cache_data(ttl=60)
 def fetch_data():
+    symbols = list(stocks.keys())
+
+    data = yf.download(
+        tickers=symbols,
+        period="1d",
+        interval="1d",
+        group_by="ticker",
+        progress=False,
+        threads=True
+    )
+
     rows = []
 
-    for sym, ref_low in stocks.items():
+    for sym in symbols:
         try:
-            t = yf.Ticker(sym)
-            info = t.info
+            ref_low = stocks[sym]
 
-            price = info.get("regularMarketPrice", 0)
-            change_percent = info.get("regularMarketChangePercent", 0)
+            price = data[sym]["Close"].iloc[-1]
+            open_p = data[sym]["Open"].iloc[-1]
+            high = data[sym]["High"].iloc[-1]
+            low = data[sym]["Low"].iloc[-1]
 
-            if price:
-                p2l = ((price - ref_low) / ref_low) * 100
-            else:
-                p2l = 0
+            p2l = ((price - ref_low) / ref_low) * 100
 
             rows.append({
-                "Stock": info.get("shortName", sym.replace(".NS", "")),
+                "Stock": sym.replace(".NS", ""),
                 "P2L %": p2l,
                 "Price": price,
-                "% Chg": change_percent,
                 "Low Price": ref_low,
-                "Open": info.get("open", 0),
-                "High": info.get("dayHigh", 0),
-                "Low": info.get("dayLow", 0)
+                "Open": open_p,
+                "High": high,
+                "Low": low
             })
-
         except:
             pass
 
@@ -67,7 +68,6 @@ def fetch_data():
 
 # -----------------------------------
 # BUTTONS
-
 col1, col2 = st.columns(2)
 
 with col1:
@@ -78,35 +78,15 @@ with col2:
     sort_clicked = st.button("📈 Sort by P2L")
 
 # -----------------------------------
-# LOAD DATA
-
 df = fetch_data()
 
-if sort_clicked:
-    df = df.sort_values("P2L %", ascending=False)
+if df.empty:
+    st.error("⚠️ No data received from Yahoo Finance.")
+else:
+    if sort_clicked:
+        df = df.sort_values("P2L %", ascending=False)
 
-# -----------------------------------
-# STYLING FUNCTION
-
-def color_rows(row):
-    style = []
-
-    # Stock name pink if P2L negative
-    if row["P2L %"] < 0:
-        style.append("color: hotpink")
-    else:
-        style.append("color: black")
-
-    # Remaining columns
-    for col in row.index[1:]:
-        if col in ["Open", "High", "Low"]:
-            style.append("color: hotpink")
-        else:
-            style.append("color: black")
-
-    return style
-
-# Apply styling
-styled_df = df.style.apply(color_rows, axis=1).format("{:.2f}")
-
-st.dataframe(styled_df, use_container_width=True)
+    st.dataframe(
+        df.style.format("{:.2f}"),
+        use_container_width=True
+    )
