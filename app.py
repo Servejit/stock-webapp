@@ -41,7 +41,7 @@ table {
 
 stockstar_input = st.text_input(
     "⭐ StockStar (Comma Separated)",
-    "DLF.NS, CANBK.NS"
+    ""ADANIENT.NS", "AMBUJACEM.NS", "AXISBANK.NS", "BAJAJHFL.NS", "BPCL.NS", "CANBK.NS", "COALINDIA.NS", "COFORGE.NS", "DLF.NS", "GMRAIRPORT.NS", "HCLTECH.NS", "HDFCBANK.NS", "HINDALCO.NS", "IDFCFIRSTB.NS", "INFY.NS", "IRFC.NS", "JIOFIN.NS", "JSWENERGY.NS", "JUBLFOOD.NS", "KOTAKBANK.NS", "LTIM.NS", "M.NS", "MPHASIS.NS", "NAUKRI.NS", "NHPC.NS", "OFSS.NS", "OIL.NS", "PAGEIND.NS", "PERSISTENT.NS", "PFC.NS", "PNB.NS", "PRESTIGE.NS", "RECLTD.NS", "RELIANCE.NS", "SHREECEM.NS", "SOLARINDS.NS", "SRF.NS", "TATACONSUM.NS", "TCS.NS", "UPL.NS", "VBL.NS", "YESBANK.NS""
 ).upper()
 
 stockstar_list = [
@@ -76,19 +76,48 @@ DEFAULT_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-previ
 # STOCK LIST
 
 stocks = {
-    "CANBK.NS": 142.93,
-    "CHOLAFIN.NS": 1690.51,
-    "COALINDIA.NS": 414.07,
-    "DLF.NS": 646.85,
-    "HCLTECH.NS": 1465.83,
-    "IDFCFIRSTB.NS": 80.84,
-    "INFY.NS": 1377.05,
-    "MPHASIS.NS": 2445.51,
-    "NHPC.NS": 75.78,
-    "OIL.NS": 468.65,
-    "PAGEIND.NS": 33501.65,
-    "PERSISTENT.NS": 5417.42,
-    "PNB.NS": 119.90,
+    "ADANIENT.NS": 2113.58,
+    "AMBUJACEM.NS": 514.66,
+    "AXISBANK.NS": 1309.52,
+    "BAJAJHFL.NS": 88.46,
+    "BPCL.NS": 371.09,
+    "CANBK.NS": 140.71,
+    "COALINDIA.NS": 406.06,
+    "COFORGE.NS": 1330.67,
+    "DLF.NS": 621.99,
+    "GMRAIRPORT.NS": 93.06,
+    "HCLTECH.NS": 1392.51,
+    "HDFCBANK.NS": 896.50,
+    "HINDALCO.NS": 896.50,
+    "IDFCFIRSTB.NS": 79.61,
+    "INFY.NS": 1278.30,
+    "IRFC.NS": 110.49,
+    "JIOFIN.NS": 261.54,
+    "JSWENERGY.NS": 466.51,
+    "JUBLFOOD.NS": 522.62,
+    "KOTAKBANK.NS": 417.45,
+    "LTIM.NS": 4975.53,
+    "M.NS": 3502.70,
+    "MPHASIS.NS": 2349.31,
+    "NAUKRI.NS": 1098.68,
+    "NHPC.NS": 74.82,
+    "OFSS.NS": 6384.00,
+    "OIL.NS": 451.17,
+    "PAGEIND.NS": 33133.50,
+    "PERSISTENT.NS": 5196.98,
+    "PFC.NS": 397.40,
+    "PNB.NS": 117.71,
+    "PRESTIGE.NS": 1474.69,
+    "RECLTD.NS": 338.10,
+    "RELIANCE.NS": 1409.22,
+    "SHREECEM.NS": 25621.25,
+    "SOLARINDS.NS": 12870.33,
+    "SRF.NS": 2758.69,
+    "TATACONSUM.NS": 1119.77,
+    "TCS.NS": 2578.54,
+    "UPL.NS": 717.35,
+    "VBL.NS": 443.37,
+    "YESBANK.NS": 20.61,
 }
 
 # ---------------------------------------------------
