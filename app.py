@@ -107,7 +107,7 @@ stocks = {
     "JUBLFOOD.NS": 522.62,
     "KOTAKBANK.NS": 416.16,
     "LTIM.NS": 4975.53,
-    "M%26M.NS": 3444.69,
+    "M&M.NS": 3444.69,
     "MPHASIS.NS": 2349.31,
     "MUTHOOTFIN.NS": 3431.50,
     "NAUKRI.NS": 1098.68,
