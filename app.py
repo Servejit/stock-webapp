@@ -16,8 +16,8 @@ st.title("📊 Live Prices with P2L")
 # ---------------------------------------------------
 # TELEGRAM SETTINGS
 
-BOT_TOKEN = "YOUR_BOT_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+BOT_TOKEN = "8371973661:AAFTOjh53yKmmgv3eXqD5wf8Ki6XXrZPq2c"
+CHAT_ID = "5355913841"
 
 # ---------------------------------------------------
 # FLASH CSS
@@ -76,7 +76,7 @@ stocks = {
 "BSE.NS":2718.29,
 "HEROMOTOCO.NS":5419.27,
 "HINDALCO.NS":878.80,
-"ITC.NS":325.49,
+"ITC.NS":375.49,
 
 }
 
