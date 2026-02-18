@@ -44,7 +44,7 @@ color:white;
 
 stockstar_input = st.text_input(
 "⭐ StockStar",
-"BOSCHLTD.NS, BSE.NS, HEROMOTOCO.NS, HINDALCO.NS"
+"BOSCHLTD.NS, BSE.NS, HEROMOTOCO.NS, HINDALCO.NS, ITC.NS"
 ).upper()
 
 stockstar_list = [
@@ -76,7 +76,7 @@ stocks = {
 "BSE.NS":2718.29,
 "HEROMOTOCO.NS":5419.27,
 "HINDALCO.NS":878.80,
-"ITC.NS":300.49,
+"ITC.NS":325.49,
 
 }
 
