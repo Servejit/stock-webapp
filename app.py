@@ -104,7 +104,7 @@ stocks = {
     "IRFC.NS": 110.02,
     "JIOFIN.NS": 258.25,
     "JSWENERGY.NS": 466.51,
-    "JUBLFOOD.NS": 502.62,
+    "JUBLFOOD.NS": 592.62,
     "KOTAKBANK.NS": 416.16,
     "LTIM.NS": 4975.53,
     "M&M.NS": 3444.69,
