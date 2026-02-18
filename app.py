@@ -1,5 +1,5 @@
 # ---------------------------------------------------
-# INSTALL (Run once in terminal)
+# INSTALL
 # pip install streamlit yfinance pandas requests
 # ---------------------------------------------------
 
@@ -37,6 +37,46 @@ table {
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------
+# NEW FUNCTION (TIME CALCULATION)
+
+@st.cache_data(ttl=60)
+def down_since_minutes(symbol, ref_low, current_price):
+
+    try:
+
+        if current_price >= ref_low:
+            return 0
+
+        data = yf.download(
+            symbol,
+            period="1d",
+            interval="1m",
+            progress=False
+        )
+
+        closes = data["Close"]
+
+        now = closes.index[-1]
+
+        down_start = None
+
+        for time, price in reversed(closes.items()):
+
+            if price >= ref_low:
+                break
+
+            down_start = time
+
+        if down_start is None:
+            return 0
+
+        return int((now - down_start).total_seconds() / 60)
+
+    except:
+
+        return 0
+
+# ---------------------------------------------------
 # STOCKSTAR INPUT
 
 stockstar_input = st.text_input(
@@ -54,9 +94,6 @@ stockstar_list = [
 # SOUND SETTINGS
 
 sound_alert = st.toggle("🔊 Enable Alert Sound for -5% Green Stocks", value=False)
-
-# ---------------------------------------------------
-# TELEGRAM ALERT TOGGLE
 
 telegram_alert = st.toggle("📲 Enable Telegram Alert for Green Flashing", value=False)
 
@@ -136,42 +173,6 @@ stocks = {
 }
 
 # ---------------------------------------------------
-# NEW FUNCTION
-
-@st.cache_data(ttl=60)
-def down_since_minutes(symbol, ref_low, current_price):
-
-    try:
-
-        if current_price >= ref_low:
-            return 0
-
-        data = yf.download(symbol, period="1d", interval="1m", progress=False)
-
-        closes = data["Close"]
-
-        now = closes.index[-1]
-
-        down_start = None
-
-        for time, price in reversed(closes.items()):
-
-            if price >= ref_low:
-                break
-
-            down_start = time
-
-        if down_start is None:
-            return 0
-
-        return int((now - down_start).total_seconds() / 60)
-
-    except:
-
-        return 0
-
-
-# ---------------------------------------------------
 # FETCH DATA
 
 @st.cache_data(ttl=60)
@@ -225,4 +226,80 @@ def fetch_data():
     return pd.DataFrame(rows)
 
 # ---------------------------------------------------
-# REST OF YOUR CODE SAME BELOW
+# BUTTONS
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🔄 Refresh"):
+        st.cache_data.clear()
+        st.rerun()
+
+with col2:
+    sort_clicked = st.button("📈 Sort by P2L")
+
+# ---------------------------------------------------
+# LOAD DATA
+
+df = fetch_data()
+
+if df.empty:
+    st.error("⚠️ No data received from Yahoo Finance.")
+    st.stop()
+
+numeric_cols = ["P2L %", "Price", "Down Since (min)", "% Chg", "Low Price", "Open", "High", "Low"]
+
+for col in numeric_cols:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+if sort_clicked:
+    df = df.sort_values("P2L %", ascending=False)
+
+# ---------------------------------------------------
+# HTML TABLE
+
+def generate_html_table(dataframe):
+
+    html = """
+    <table style="width:100%; border-collapse: collapse;">
+    <tr style="background-color:#111;">
+    """
+
+    for col in dataframe.columns:
+        html += f"<th style='padding:8px; border:1px solid #444;'>{col}</th>"
+
+    html += "</tr>"
+
+    for _, row in dataframe.iterrows():
+
+        html += "<tr>"
+
+        for col in dataframe.columns:
+
+            value = row[col]
+            style = "padding:6px; border:1px solid #444; text-align:center;"
+
+            if col == "Down Since (min)":
+                style += "color:orange; font-weight:bold;"
+
+            if isinstance(value, float):
+                value = f"{value:.2f}"
+
+            html += f"<td style='{style}'>{value}</td>"
+
+        html += "</tr>"
+
+    html += "</table>"
+
+    return html
+
+st.markdown(generate_html_table(df), unsafe_allow_html=True)
+
+# ---------------------------------------------------
+# AVERAGE
+
+average_p2l = df["P2L %"].mean()
+
+st.markdown(
+    f"### 📊 Average P2L of All Stocks is **{average_p2l:.2f}%**"
+)
