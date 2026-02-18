@@ -1,5 +1,5 @@
 # ---------------------------------------------------
-# INSTALL
+# INSTALL (Run once in terminal)
 # pip install streamlit yfinance pandas requests
 # ---------------------------------------------------
 
@@ -37,46 +37,6 @@ table {
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------
-# NEW FUNCTION (TIME CALCULATION)
-
-@st.cache_data(ttl=60)
-def down_since_minutes(symbol, ref_low, current_price):
-
-    try:
-
-        if current_price >= ref_low:
-            return 0
-
-        data = yf.download(
-            symbol,
-            period="1d",
-            interval="1m",
-            progress=False
-        )
-
-        closes = data["Close"]
-
-        now = closes.index[-1]
-
-        down_start = None
-
-        for time, price in reversed(closes.items()):
-
-            if price >= ref_low:
-                break
-
-            down_start = time
-
-        if down_start is None:
-            return 0
-
-        return int((now - down_start).total_seconds() / 60)
-
-    except:
-
-        return 0
-
-# ---------------------------------------------------
 # STOCKSTAR INPUT
 
 stockstar_input = st.text_input(
@@ -94,6 +54,9 @@ stockstar_list = [
 # SOUND SETTINGS
 
 sound_alert = st.toggle("🔊 Enable Alert Sound for -5% Green Stocks", value=False)
+
+# ---------------------------------------------------
+# TELEGRAM ALERT TOGGLE
 
 telegram_alert = st.toggle("📲 Enable Telegram Alert for Green Flashing", value=False)
 
@@ -173,6 +136,41 @@ stocks = {
 }
 
 # ---------------------------------------------------
+# NEW FUNCTION
+
+@st.cache_data(ttl=60)
+def down_since_minutes(symbol, ref_low, current_price):
+
+    try:
+
+        if current_price >= ref_low:
+            return 0
+
+        data = yf.download(symbol, period="1d", interval="1m", progress=False)
+
+        closes = data["Close"]
+
+        now = closes.index[-1]
+
+        down_start = None
+
+        for time, price in reversed(closes.items()):
+
+            if price >= ref_low:
+                break
+
+            down_start = time
+
+        if down_start is None:
+            return 0
+
+        return int((now - down_start).total_seconds() / 60)
+
+    except:
+
+        return 0
+
+# ---------------------------------------------------
 # FETCH DATA
 
 @st.cache_data(ttl=60)
@@ -226,7 +224,7 @@ def fetch_data():
     return pd.DataFrame(rows)
 
 # ---------------------------------------------------
-# BUTTONS
+# BUTTONS (UNCHANGED)
 
 col1, col2 = st.columns(2)
 
@@ -282,6 +280,25 @@ def generate_html_table(dataframe):
             if col == "Down Since (min)":
                 style += "color:orange; font-weight:bold;"
 
+            if col == "Stock":
+
+                if row["Stock"] in stockstar_list and row["P2L %"] < -5:
+                    style += "color:green; font-weight:bold; animation: flash 1s infinite;"
+
+                elif row["Stock"] in stockstar_list and row["P2L %"] < -3:
+                    style += "color:orange; font-weight:bold;"
+
+                elif row["P2L %"] < -2:
+                    style += "color:hotpink; font-weight:bold;"
+
+            if col in ["P2L %", "% Chg"]:
+
+                if value > 0:
+                    style += "color:green; font-weight:bold;"
+
+                elif value < 0:
+                    style += "color:red; font-weight:bold;"
+
             if isinstance(value, float):
                 value = f"{value:.2f}"
 
@@ -296,7 +313,7 @@ def generate_html_table(dataframe):
 st.markdown(generate_html_table(df), unsafe_allow_html=True)
 
 # ---------------------------------------------------
-# AVERAGE
+# AVERAGE (UNCHANGED)
 
 average_p2l = df["P2L %"].mean()
 
