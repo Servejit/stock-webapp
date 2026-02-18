@@ -41,7 +41,7 @@ table {
 
 stockstar_input = st.text_input(
     "⭐ StockStar (Comma Separated)",
-    "BOSCHLTD.NS, BSE.NS, HEROMOTOCO.NS, HINDALCO.NS, HINDZINC.NS, M&M.NS, MUTHOOTFIN.NS, PIIND.NS"
+    "BOSCHLTD.NS, BSE.NS, HEROMOTOCO.NS, HINDALCO.NS, HINDZINC.NS, M&M.NS, MUTHOOTFIN.NS, PIIND.NS, JUBLFOOD.NS"
 ).upper()
 
 stockstar_list = [
@@ -104,7 +104,7 @@ stocks = {
     "IRFC.NS": 110.02,
     "JIOFIN.NS": 258.25,
     "JSWENERGY.NS": 466.51,
-    "JUBLFOOD.NS": 522.62,
+    "JUBLFOOD.NS": 592.62,
     "KOTAKBANK.NS": 416.16,
     "LTIM.NS": 4975.53,
     "M&M.NS": 3444.69,
