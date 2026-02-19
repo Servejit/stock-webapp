@@ -76,30 +76,73 @@ DEFAULT_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-previ
 # STOCK LIST
 
 stocks = {
-    "RELIANCE.NS": 1402.25,
-    "HDFCBANK.NS": 896.50,
-    "INFY.NS": 1278.30,
-    "TCS.NS": 2578.54,
-    "HINDALCO.NS": 878.80,
+    "ADANIENT.NS": 2092.68,
+    "ADANIPORTS.NS": 1487.82,
+    "AMBUJACEM.NS": 510.63,
+    "AXISBANK.NS": 1309.52,
+    "BAJAJHFL.NS": 88.23,
+    "BHEL.NS": 251.74,
+    "BOSCHLTD.NS": 35043.90,
+    "BPCL.NS": 367.20,
     "BSE.NS": 2718.29,
-    "PIIND.NS": 2999.93,
+    "CANBK.NS": 139.45,
+    "COALINDIA.NS": 404.57,
+    "COFORGE.NS": 1330.67,
+    "DLF.NS": 620.45,
+    "DMART.NS": 3823.09,
+    "GMRAIRPORT.NS": 93.06,
+    "GODREJCP.NS": 1165.94,
+    "HCLTECH.NS": 1392.51,
+    "HDFCBANK.NS": 896.50,
+    "HEROMOTOCO.NS": 5419.27,
+    "HINDALCO.NS": 878.80,
+    "HINDUNILVR.NS": 2282.38,
+    "HINDZINC.NS": 573.56,
+    "IDFCFIRSTB.NS": 79.61,
+    "INFY.NS": 1278.30,
+    "IRCTC.NS": 603.12,
+    "IRFC.NS": 110.02,
+    "JIOFIN.NS": 258.25,
+    "JSWENERGY.NS": 466.51,
+    "JUBLFOOD.NS": 522.62,
+    "KOTAKBANK.NS": 416.16,
+    "LTIM.NS": 4975.53,
+    "M&M.NS": 3444.69,
+    "MPHASIS.NS": 2349.31,
     "MUTHOOTFIN.NS": 3431.50,
+    "NAUKRI.NS": 1098.68,
+    "NHPC.NS": 74.28,
+    "OFSS.NS": 6384.00,
+    "OIL.NS": 451.02,
+    "PAGEIND.NS": 33063.85,
+    "PERSISTENT.NS": 5196.98,
+    "PFC.NS": 395.26,
+    "PIIND.NS": 2999.93,
+    "PNB.NS": 116.96,
+    "POLYCAB.NS": 7498.32,
+    "PRESTIGE.NS": 1474.69,
+    "RECLTD.NS": 338.10,
+    "RELIANCE.NS": 1402.25,
+    "SHREECEM.NS": 25621.25,
+    "SOLARINDS.NS": 12787.74,
+    "SRF.NS": 2682.32,
+    "SUZLON.NS": 45.11,
+    "TATACONSUM.NS": 1111.51,
+    "TATASTEEL.NS": 199.55,
+    "TCS.NS": 2578.54,
+    "UPL.NS": 712.82,
+    "VBL.NS": 443.37,
+    "YESBANK.NS": 20.60,
 }
 
 # ---------------------------------------------------
-# NEW FUNCTION (ONLY ADDITION)
+# DOWN MINUTES FUNCTION (ONLY ADDITION)
 
 @st.cache_data(ttl=60)
 def get_down_minutes(symbol, ref_low):
 
     try:
-
-        df = yf.download(
-            symbol,
-            period="1d",
-            interval="1m",
-            progress=False
-        )
+        df = yf.download(symbol, period="1d", interval="1m", progress=False)
 
         low_rows = df[df["Low"] <= ref_low]
 
@@ -108,21 +151,15 @@ def get_down_minutes(symbol, ref_low):
 
         last_time = low_rows.index[-1].to_pydatetime()
 
-        minutes = int(
-            (datetime.now() - last_time).total_seconds() / 60
-        )
+        minutes = int((datetime.now() - last_time).total_seconds() / 60)
 
-        if minutes < 15:
-            return f"🟠 {minutes}"
-        else:
-            return f"{minutes}"
+        return f"🟠 {minutes}" if minutes < 15 else f"{minutes}"
 
     except:
-
         return ""
 
 # ---------------------------------------------------
-# FETCH DATA (SEQUENCE NOT CHANGED)
+# FETCH DATA
 
 @st.cache_data(ttl=60)
 def fetch_data():
@@ -155,30 +192,19 @@ def fetch_data():
             p2l = ((price - ref_low) / ref_low) * 100
             pct_chg = ((price - prev_close) / prev_close) * 100
 
-            # ONLY NEW ADDITION AFTER PRICE
-
-            down_minutes = get_down_minutes(sym, ref_low)
-
             rows.append({
-
                 "Stock": sym.replace(".NS", ""),
-
                 "P2L %": p2l,
-
                 "Price": price,
 
-                "Minutes": down_minutes,
+                # ONLY NEW COLUMN
+                "Minutes": get_down_minutes(sym, ref_low),
 
                 "% Chg": pct_chg,
-
                 "Low Price": ref_low,
-
                 "Open": open_p,
-
                 "High": high,
-
                 "Low": low
-
             })
 
         except:
@@ -204,6 +230,10 @@ with col2:
 
 df = fetch_data()
 
+if df.empty:
+    st.error("⚠️ No data received from Yahoo Finance.")
+    st.stop()
+
 numeric_cols = ["P2L %", "Price", "% Chg", "Low Price", "Open", "High", "Low"]
 
 for col in numeric_cols:
@@ -213,9 +243,60 @@ if sort_clicked:
     df = df.sort_values("P2L %", ascending=False)
 
 # ---------------------------------------------------
-# SHOW TABLE
+# HTML TABLE (UNCHANGED)
 
-st.dataframe(df, use_container_width=True)
+def generate_html_table(dataframe):
+
+    html = """
+    <table style="width:100%; border-collapse: collapse;">
+    <tr style="background-color:#111;">
+    """
+
+    for col in dataframe.columns:
+        html += f"<th style='padding:8px; border:1px solid #444;'>{col}</th>"
+
+    html += "</tr>"
+
+    for _, row in dataframe.iterrows():
+
+        html += "<tr>"
+
+        for col in dataframe.columns:
+
+            value = row[col]
+            style = "padding:6px; border:1px solid #444; text-align:center;"
+
+            if col == "Stock":
+
+                if row["Stock"] in stockstar_list and row["P2L %"] < -5:
+                    style += "color:green; font-weight:bold; animation: flash 1s infinite;"
+
+                elif row["Stock"] in stockstar_list and row["P2L %"] < -3:
+                    style += "color:orange; font-weight:bold;"
+
+                elif row["P2L %"] < -2:
+                    style += "color:hotpink; font-weight:bold;"
+
+            if col in ["P2L %", "% Chg"]:
+
+                if value > 0:
+                    style += "color:green; font-weight:bold;"
+
+                elif value < 0:
+                    style += "color:red; font-weight:bold;"
+
+            if isinstance(value, float):
+                value = f"{value:.2f}"
+
+            html += f"<td style='{style}'>{value}</td>"
+
+        html += "</tr>"
+
+    html += "</table>"
+
+    return html
+
+st.markdown(generate_html_table(df), unsafe_allow_html=True)
 
 # ---------------------------------------------------
 # AVERAGE
