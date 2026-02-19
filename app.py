@@ -138,7 +138,6 @@ stocks = {
     "UPL.NS": 712.82,
     "VBL.NS": 443.37,
     "YESBANK.NS": 20.60,
-}
 
 }
 
