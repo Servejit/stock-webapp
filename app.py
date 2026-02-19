@@ -186,18 +186,29 @@ def fetch_data():
     return pd.DataFrame(rows)
 
 # ---------------------------------------------------
+# BUTTONS
+
+col1, col2 = st.columns(2)
+
+with col1:
+    if st.button("🔄 Refresh"):
+        st.cache_data.clear()
+        st.rerun()
+
+with col2:
+    sort_clicked = st.button("📈 Sort by P2L")
+
+# ---------------------------------------------------
 # LOAD DATA
 
 df = fetch_data()
 
-# ---------------------------------------------------
-# DURATION TRACKING
+# ------------------ DURATION ADDITION ------------------
 
 if "trigger_times" not in st.session_state:
     st.session_state.trigger_times = {}
 
 duration_list = []
-
 now = datetime.now()
 
 for _, row in df.iterrows():
@@ -217,17 +228,34 @@ for _, row in df.iterrows():
 
         duration_list.append("")
 
-# INSERT AFTER PRICE COLUMN
+# ---------------------------------------------------
+
+if df.empty:
+    st.error("⚠️ No data received from Yahoo Finance.")
+    st.stop()
+
+numeric_cols = ["P2L %", "Price", "% Chg", "Low Price", "Open", "High", "Low"]
+
+for col in numeric_cols:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+# INSERT AFTER PRICE
 
 price_index = df.columns.get_loc("Price")
 df.insert(price_index + 1, "Duration", duration_list)
+
+if sort_clicked:
+    df = df.sort_values("P2L %", ascending=False)
 
 # ---------------------------------------------------
 # HTML TABLE
 
 def generate_html_table(dataframe):
 
-    html = """<table style="width:100%; border-collapse: collapse;"><tr style="background-color:#111;">"""
+    html = """
+    <table style="width:100%; border-collapse: collapse;">
+    <tr style="background-color:#111;">
+    """
 
     for col in dataframe.columns:
         html += f"<th style='padding:8px; border:1px solid #444;'>{col}</th>"
@@ -243,14 +271,31 @@ def generate_html_table(dataframe):
             value = row[col]
             style = "padding:6px; border:1px solid #444; text-align:center;"
 
-            # DURATION COLOR
+            # DURATION COLOR ADDITION
 
             if col == "Duration" and value != "":
-
                 if int(value) < 15:
-
                     value = f"🟠{value}"
                     style += "color:orange; font-weight:bold;"
+
+            if col == "Stock":
+
+                if row["Stock"] in stockstar_list and row["P2L %"] < -5:
+                    style += "color:green; font-weight:bold; animation: flash 1s infinite;"
+
+                elif row["Stock"] in stockstar_list and row["P2L %"] < -3:
+                    style += "color:orange; font-weight:bold;"
+
+                elif row["P2L %"] < -2:
+                    style += "color:hotpink; font-weight:bold;"
+
+            if col in ["P2L %", "% Chg"]:
+
+                if value > 0:
+                    style += "color:green; font-weight:bold;"
+
+                elif value < 0:
+                    style += "color:red; font-weight:bold;"
 
             if isinstance(value, float):
                 value = f"{value:.2f}"
