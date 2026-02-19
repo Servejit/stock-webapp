@@ -136,29 +136,6 @@ stocks = {
 }
 
 # ---------------------------------------------------
-# DOWN MINUTES FUNCTION (ONLY ADDITION)
-
-@st.cache_data(ttl=60)
-def get_down_minutes(symbol, ref_low):
-
-    try:
-        df = yf.download(symbol, period="1d", interval="1m", progress=False)
-
-        low_rows = df[df["Low"] <= ref_low]
-
-        if low_rows.empty:
-            return ""
-
-        last_time = low_rows.index[-1].to_pydatetime()
-
-        minutes = int((datetime.now() - last_time).total_seconds() / 60)
-
-        return f"🟠 {minutes}" if minutes < 15 else f"{minutes}"
-
-    except:
-        return ""
-
-# ---------------------------------------------------
 # FETCH DATA
 
 @st.cache_data(ttl=60)
@@ -196,10 +173,6 @@ def fetch_data():
                 "Stock": sym.replace(".NS", ""),
                 "P2L %": p2l,
                 "Price": price,
-
-                # ONLY NEW COLUMN
-                "Minutes": get_down_minutes(sym, ref_low),
-
                 "% Chg": pct_chg,
                 "Low Price": ref_low,
                 "Open": open_p,
@@ -243,7 +216,58 @@ if sort_clicked:
     df = df.sort_values("P2L %", ascending=False)
 
 # ---------------------------------------------------
-# HTML TABLE (UNCHANGED)
+# GREEN TRIGGER CHECK
+
+green_trigger = False
+trigger_stock = ""
+trigger_price = 0
+trigger_p2l = 0
+
+for _, row in df.iterrows():
+
+    if row["Stock"] in stockstar_list and row["P2L %"] < -5:
+
+        green_trigger = True
+        trigger_stock = row["Stock"]
+        trigger_price = row["Price"]
+        trigger_p2l = row["P2L %"]
+        break
+
+# ---------------------------------------------------
+# ALERT MEMORY STATE
+
+if "alert_played" not in st.session_state:
+    st.session_state.alert_played = False
+
+if not green_trigger:
+    st.session_state.alert_played = False
+
+# ---------------------------------------------------
+# TELEGRAM ALERT (UPGRADED MESSAGE)
+
+if telegram_alert and green_trigger and not st.session_state.alert_played:
+
+    current_time = datetime.now().strftime("%I:%M:%S %p")
+
+    message = f"""
+🟢 GREEN FLASH ALERT
+
+Stock: {trigger_stock}
+Price: ₹{trigger_price:.2f}
+P2L: {trigger_p2l:.2f}%
+
+Time: {current_time}
+"""
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+
+    requests.post(url, data={
+        "chat_id": CHAT_ID,
+        "text": message
+    })
+
+# ---------------------------------------------------
+# HTML TABLE
 
 def generate_html_table(dataframe):
 
@@ -299,10 +323,37 @@ def generate_html_table(dataframe):
 st.markdown(generate_html_table(df), unsafe_allow_html=True)
 
 # ---------------------------------------------------
+# SOUND ALERT (ONCE PER TRIGGER)
+
+if sound_alert and green_trigger and not st.session_state.alert_played:
+
+    st.session_state.alert_played = True
+
+    if uploaded_sound is not None:
+
+        audio_bytes = uploaded_sound.read()
+        b64 = base64.b64encode(audio_bytes).decode()
+        file_type = uploaded_sound.type
+
+        st.markdown(f"""
+        <audio autoplay>
+            <source src="data:{file_type};base64,{b64}">
+        </audio>
+        """, unsafe_allow_html=True)
+
+    else:
+
+        st.markdown(f"""
+        <audio autoplay>
+            <source src="{DEFAULT_SOUND_URL}">
+        </audio>
+        """, unsafe_allow_html=True)
+
+# ---------------------------------------------------
 # AVERAGE
 
 average_p2l = df["P2L %"].mean()
 
 st.markdown(
     f"### 📊 Average P2L of All Stocks is **{average_p2l:.2f}%**"
-)
+    )
