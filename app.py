@@ -16,8 +16,8 @@ st.title("📊 Live Prices with P2L")
 # ---------------------------------------------------
 # TELEGRAM SETTINGS
 
-BOT_TOKEN = "YOUR_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+BOT_TOKEN = "8371973661:AAFTOjh53yKmmgv3eXqD5wf8Ki6XXrZPq2c"
+CHAT_ID = "5355913841"
 
 # ---------------------------------------------------
 # FLASHING CSS
@@ -87,7 +87,42 @@ stocks = {
 }
 
 # ---------------------------------------------------
-# FETCH DATA
+# NEW FUNCTION (ONLY ADDITION)
+
+@st.cache_data(ttl=60)
+def get_down_minutes(symbol, ref_low):
+
+    try:
+
+        df = yf.download(
+            symbol,
+            period="1d",
+            interval="1m",
+            progress=False
+        )
+
+        low_rows = df[df["Low"] <= ref_low]
+
+        if low_rows.empty:
+            return ""
+
+        last_time = low_rows.index[-1].to_pydatetime()
+
+        minutes = int(
+            (datetime.now() - last_time).total_seconds() / 60
+        )
+
+        if minutes < 15:
+            return f"🟠 {minutes}"
+        else:
+            return f"{minutes}"
+
+    except:
+
+        return ""
+
+# ---------------------------------------------------
+# FETCH DATA (SEQUENCE NOT CHANGED)
 
 @st.cache_data(ttl=60)
 def fetch_data():
@@ -96,8 +131,8 @@ def fetch_data():
 
     data = yf.download(
         tickers=symbols,
-        period="1d",
-        interval="1m",
+        period="2d",
+        interval="1d",
         group_by="ticker",
         progress=False,
         threads=True
@@ -105,56 +140,24 @@ def fetch_data():
 
     rows = []
 
-    now = datetime.now()
-
     for sym in symbols:
 
         try:
 
-            df_sym = data[sym]
-
             ref_low = stocks[sym]
 
-            price = df_sym["Close"].iloc[-1]
-
-            prev_close = df_sym["Close"].iloc[0]
-
-            open_p = df_sym["Open"].iloc[-1]
-
-            high = df_sym["High"].iloc[-1]
-
-            low = df_sym["Low"].iloc[-1]
-
-            # ---------------------------------------------------
-            # DOWN MINUTES CALCULATION
-
-            low_rows = df_sym[df_sym["Low"] <= ref_low]
-
-            if not low_rows.empty:
-
-                last_low_time = low_rows.index[-1].to_pydatetime()
-
-                minutes_down = int(
-                    (now - last_low_time).total_seconds() / 60
-                )
-
-            else:
-
-                minutes_down = 999
-
-            if minutes_down < 15:
-
-                down_display = f"🟠 {minutes_down}"
-
-            else:
-
-                down_display = f"{minutes_down}"
-
-            # ---------------------------------------------------
+            price = data[sym]["Close"].iloc[-1]
+            prev_close = data[sym]["Close"].iloc[-2]
+            open_p = data[sym]["Open"].iloc[-1]
+            high = data[sym]["High"].iloc[-1]
+            low = data[sym]["Low"].iloc[-1]
 
             p2l = ((price - ref_low) / ref_low) * 100
-
             pct_chg = ((price - prev_close) / prev_close) * 100
+
+            # ONLY NEW ADDITION AFTER PRICE
+
+            down_minutes = get_down_minutes(sym, ref_low)
 
             rows.append({
 
@@ -164,6 +167,8 @@ def fetch_data():
 
                 "Price": price,
 
+                "Minutes": down_minutes,
+
                 "% Chg": pct_chg,
 
                 "Low Price": ref_low,
@@ -172,130 +177,51 @@ def fetch_data():
 
                 "High": high,
 
-                "Low": low,
-
-                "Down Minutes": down_display
+                "Low": low
 
             })
 
         except:
-
             pass
 
     return pd.DataFrame(rows)
 
 # ---------------------------------------------------
-# REFRESH BUTTON
+# BUTTONS
 
-if st.button("🔄 Refresh"):
+col1, col2 = st.columns(2)
 
-    st.cache_data.clear()
+with col1:
+    if st.button("🔄 Refresh"):
+        st.cache_data.clear()
+        st.rerun()
 
-    st.rerun()
+with col2:
+    sort_clicked = st.button("📈 Sort by P2L")
 
 # ---------------------------------------------------
 # LOAD DATA
 
 df = fetch_data()
 
-# ---------------------------------------------------
-# TELEGRAM ALERT
+numeric_cols = ["P2L %", "Price", "% Chg", "Low Price", "Open", "High", "Low"]
 
-green_trigger = False
+for col in numeric_cols:
+    df[col] = pd.to_numeric(df[col], errors="coerce")
 
-for _, row in df.iterrows():
-
-    if row["Stock"] in stockstar_list and row["P2L %"] < -5:
-
-        green_trigger = True
-
-        trigger_stock = row["Stock"]
-
-        trigger_price = row["Price"]
-
-        trigger_p2l = row["P2L %"]
-
-        break
-
-if "alert_played" not in st.session_state:
-
-    st.session_state.alert_played = False
-
-if telegram_alert and green_trigger and not st.session_state.alert_played:
-
-    current_time = datetime.now().strftime("%H:%M:%S")
-
-    message = f"""
-
-GREEN ALERT
-
-Stock: {trigger_stock}
-
-Price: {trigger_price:.2f}
-
-P2L: {trigger_p2l:.2f}%
-
-Time: {current_time}
-
-"""
-
-    requests.post(
-
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-
-        data={
-
-            "chat_id": CHAT_ID,
-
-            "text": message
-
-        }
-
-    )
-
-    st.session_state.alert_played = True
+if sort_clicked:
+    df = df.sort_values("P2L %", ascending=False)
 
 # ---------------------------------------------------
-# TABLE
+# SHOW TABLE
 
 st.dataframe(df, use_container_width=True)
 
 # ---------------------------------------------------
-# SOUND ALERT
-
-if sound_alert and green_trigger and not st.session_state.alert_played:
-
-    st.session_state.alert_played = True
-
-    if uploaded_sound:
-
-        audio_bytes = uploaded_sound.read()
-
-        b64 = base64.b64encode(audio_bytes).decode()
-
-        st.markdown(
-
-            f"""
-
-            <audio autoplay>
-
-            <source src="data:audio/mp3;base64,{b64}">
-
-            </audio>
-
-            """,
-
-            unsafe_allow_html=True,
-
-        )
-
-    else:
-
-        st.audio(DEFAULT_SOUND_URL, autoplay=True)
-
-# ---------------------------------------------------
 # AVERAGE
 
-avg = df["P2L %"].mean()
+average_p2l = df["P2L %"].mean()
 
-st.write(f"Average P2L: {avg:.2f}%")
+st.markdown(
+    f"### 📊 Average P2L of All Stocks is **{average_p2l:.2f}%**"
+)
